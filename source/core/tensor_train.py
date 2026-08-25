@@ -391,3 +391,28 @@ class TensorTrain:
 			cores += [core]
 
 		return TensorTrain(cores)
+
+	@staticmethod
+	def random_tensor(ns: list[int], ranks: list[int]) -> TensorTrain:
+		'''
+		Generates tensor train with randomly generated cores.
+
+		Args: 
+			ns: list[int]
+				The shape of target tensor.
+			ranks: list[int]
+				The ranks pf target tensor.
+		Returns:
+			random_tensor: TensorTrain
+				The described tensor train.
+		''' 
+		cores = []
+		d = len(ns)
+
+		for i in range(d):
+			r1 = 1 if i == 0   else ranks[i-1]
+			r2 = 1 if i == d-1 else ranks[i]
+			core = np.random.rand(r1, ns[i], r2)
+			cores += [core]
+
+		return TensorTrain(cores)

@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 import copy
 
-from tensor_train import TensorTrain
+from source.core.tensor_train import TensorTrain
 
 '''
 This class describes a matrix product operator (MPO), that is a finite-dimensional operator of shape (n_1, ... n_d)x(n_1, ... n_d)  encoded using finite number of cores. 
