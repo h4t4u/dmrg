@@ -8,18 +8,18 @@ Suppose we are given a space of huge tensors of shape $n_1 \times ... \times n_d
 
 ## The algorithm
 The solution is actually pretty straightforward: Let us formulate the problem using **Lagrange multipliers method**. Introduce the functional $\mathcal{L}(x, \lambda)$:
-$$
-\mathcal{L}(x, \lambda) = x^THx - \lambda(x^Tx -1)
-$$
+
+$$\mathcal{L}(x, \lambda) = x^THx - \lambda(x^Tx -1)$$
+
 To optimise it, take partial derivative by $x$:
-$$
-\frac{\partial \mathcal{L}(x, \lambda)}{\partial x^T} = Hx - \lambda x = 0 \text{ at minimum.} \Rightarrow Hx = \lambda x
-$$
+
+$$\frac{\partial \mathcal{L}(x, \lambda)}{\partial x^T} = Hx - \lambda x = 0 \text{ at minimum.} \Rightarrow Hx = \lambda x$$
+
 An example of places where this problem cannot be solved exactly comes from the area that inspired the method: If $H$ represents a hamiltonian of a quantum system, the size of tensor grows exponentially with size of it and classical matrix methods do not work. But we can try to find an approximate solution using MPOs ant tensor trains, especially if $H$ can be decently approximated by MPO (which is true in many cases). Define $x := x(C_1, ...C_d)$, so now $x$ is a function of cores, as well as the Lagrange functional:
-$$
-\mathcal{L}(x, \lambda) = \mathcal{L}(C_1, ..., C_d, \lambda)
-$$
-In penrose notation 
+
+$$\mathcal{L}(x, \lambda) = \mathcal{L}(C_1, ..., C_d, \lambda)$$
+
+In Penrose notation 
 ```
 							 ╭────╮  ╭────╮  ╭────╮      ╭────╮
 							 │ C1 │──│ C2 │──│ C3 │── … ─│ Cd │
@@ -33,7 +33,7 @@ L(C_1, ..., C_d, \lambda) =  │ H1 │──│ H2 │──│ H3 │── �
 							 │ C1 │──│ C2 │──│ C3 │── … ─│ Cd │
 							 ╰────╯  ╰────╯  ╰────╯      ╰────╯ 
 ```
-Here $H_1, ... H_d$ isMPO representation of $H$, Now we may try to optimize the functional with respect to one core at a time, moving through them consequently in **sweeps**. For step $i$ of sweep, when we are optimizing the core $C_i$, the infimum condition on derivative looks like:
+Here $H_1, ... H_d$ is MPO representation of $H$, Now we may try to optimize the functional with respect to one core at a time, moving through them consequently in **sweeps**. For step $i$ of sweep, when we are optimizing the core $C_i$, the infimum condition on derivative looks like:
 ```
 							      ╭────╮     ╭────╮          ╭────╮     ╭────╮
 							      │ C1 │─ … ─│Ci-1│──      ──│Ci+1│─ … ─│ Cd │
@@ -48,9 +48,9 @@ Here $H_1, ... H_d$ isMPO representation of $H$, Now we may try to optimize the 
 								  ╰────╯     ╰────╯  ╰────╯  ╰────╯     ╰────╯ 
 ```
 Reshaping accordingly, this may be formulated as eigenvector condition:
-$$
-\frac{\partial\mathcal{L}(C_1, ..., C_d, \lambda)}{\partial C_i} = A C_i - \lambda B C_i = 0
-$$
+
+$$\frac{\partial\mathcal{L}(C_1, ..., C_d, \lambda)}{\partial C_i} = A C_i - \lambda B C_i = 0$$
+
 Finding solution with minimal $\lambda$ (so that is would correspond to minimal value of $x^THx$) we continue the sweep, optimizing one core at a step and approaching the minimum. 
 
 
