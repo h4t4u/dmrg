@@ -43,7 +43,6 @@ class TensorTrain:
 
 		ranks_left  = [core.shape[0] for core in cores]
 		ranks_right = [core.shape[2] for core in cores]
-		ns 			= [core.shape[1] for core in cores]
 
 		if not ranks_left[0] == 1:
 			raise ValueError(f"The first tensor of core must have shape (1, n1, r1), instead has shape{cores[0].shape}.")
@@ -135,15 +134,16 @@ class TensorTrain:
 
 	def __matmul__(self, tensor_train: TensorTrain) -> np.float64:
 		'''
-		Contracts tensor trains with identical ns lists (performs full Einstein sum). On the contrary to O(n^d) operations in full representation, it takes only O(n x d x r^3) operations.
+		Contracts tensor train and other tensor train with identical shapes (performs full Einstein sum). On the contrary to O(n^d) operations in full representation, it takes only O(n x d x r^3) operations.
 		
 		Args: 
 			tensor_train: TensorTrain
 				The tensor train of shape (n_1, ... n_d), coinciding with self.ns.
 
 		Returns:
-			scalar_product: result of full scalar multiplication of tensors by corresponding indices. 
-			In (invariant) Einstein notation the result for tensors T1 and T2 is T1_{i_1, i_2, ... i_d}T2_{i_1, i_2, ... i_d} 
+			scalar_product: np.float64
+				The result of full scalar multiplication of tensors by corresponding indices. 
+				In (invariant) Einstein notation the result for tensors T1 and T2 is T1_{i_1, i_2, ... i_d}T2_{i_1, i_2, ... i_d} 
 
 		'''
 
@@ -170,7 +170,8 @@ class TensorTrain:
 				The second tensor train of shape (m_1, ... m_e).
 
 		Returns:
-			tensor_prod: tensor product of tensors.
+			tensor_prod: TensorTrain
+				The tensor product of tensors.
 		'''
 
 		new_cores = self.cores + tensor_train.cores
@@ -194,7 +195,8 @@ class TensorTrain:
 				The second tensor train of shape (n_1, ... n_d), coinciding with self.ns.
 
 		Returns:
-			tensor_sum: result of addition of tensors.
+			tensor_sum: TensorTrain
+				The result of addition of tensors.
 		'''
 
 		new_cores = []
@@ -296,6 +298,11 @@ class TensorTrain:
 		'''
 
 		d = len(self.ns)
+
+		if d == 1:
+			cores =  copy.deepcopy(self.cores)
+			return TensorTrain(cores)
+
 		eps = self.norm() * max_rel_eps / np.sqrt(d-1)
 
 		cores =  copy.deepcopy(self.cores)
@@ -338,6 +345,11 @@ class TensorTrain:
 		'''
 
 		d = len(full_tensor.shape)
+
+		if d == 1:
+			full_tensor = full_tensor.reshape([1] + list(full_tensor.shape) + [1])
+			return TensorTrain([full_tensor])
+
 		eps = np.linalg.norm(full_tensor) * max_rel_eps / np.sqrt(d-1)
 		cores = []
 		
