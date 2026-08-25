@@ -313,7 +313,8 @@ class TensorTrain:
 			M = cores[i].reshape(shape[0], shape[1] * shape[2])
 
 			Q, R = np.linalg.qr(M.T)
-			cores[i] = (Q.T).reshape(shape)
+			k = Q.shape[1]
+			cores[i] = (Q.T).reshape(k, shape[1], shape[2])
 			cores[i-1] = np.einsum('ijk, kl', cores[i-1], R.T)
 
 		# SVD truncation

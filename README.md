@@ -53,5 +53,11 @@ $$\frac{\partial\mathcal{L}(C_1, ..., C_d, \lambda)}{\partial C_i} = A C_i - \la
 
 Finding solution with minimal $\lambda$ (so that is would correspond to minimal value of $x^THx$) we continue the sweep, optimizing one core at a step and approaching the minimum. 
 
+## Requirements
+
+- Python 3.11 or newer
+- NumPy
+- SciPy
+
 
 *This code was written by me as homework for Artem Melnikov's course "Tensor Networks and their Applications" and later rewritten (without AI written code) in my free time using publicly available information.*

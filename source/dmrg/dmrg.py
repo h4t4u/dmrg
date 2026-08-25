@@ -40,14 +40,14 @@ def generate_A_b(H: MatrixProductOperator, state: TensorTrain, index: int):
 	# Gradually approaching index of core that we are optimizing on this iteration from both sides.
 
 	if index != 0:
-		for i in range(index):
+		for i in range(1, index):
 			A_head = np.einsum('abcdef, dqg, eqph, fpi -> abcghi', A_head, state.cores[i], H.cores[i], state.cores[i]) # indices abc are rudimentary, have size 1
-			b_head = np.einsum('abcd, cqe, dqf -> abdf', b_head, state.cores[i], state.cores[i]) # indices ab are rudimentary, have size 1
+			b_head = np.einsum('abcd, cqe, dqf -> abef', b_head, state.cores[i], state.cores[i]) # indices ab are rudimentary, have size 1
 
 	if index != d-1:
-		for i in range(index+1, d)[::-1]:
+		for i in range(index+1, d-1)[::-1]:
 			A_tail = np.einsum('abcdef, kqa, lqpb, mpc -> klmdef', A_tail, state.cores[i], H.cores[i], state.cores[i]) # indices def are rudimentary, have size 1
-			b_head = np.einsum('abcd, lqa, mqb -> lmcd', b_tail, state.cores[i], state.cores[i]) # indices cd are rudimentary, have size 1
+			b_tail = np.einsum('abcd, lqa, mqb -> lmcd', b_tail, state.cores[i], state.cores[i]) # indices cd are rudimentary, have size 1
 
 	# Attaching the core for functional corresponding to the state core we are optimizing. 
 	# Treating separately head (index = 0), tail (index = d-1) and body (other) due to different shapes of tensors participating.
@@ -66,8 +66,8 @@ def generate_A_b(H: MatrixProductOperator, state: TensorTrain, index: int):
 		A_shape = (A_head.shape[0]*A_head.shape[1], A_head.shape[2]*A_head.shape[3])
 		A = A_head.reshape(A_shape) # constructed a proper matrix
 
-		b_head = np.einsum('abcd, lm-> cldmab', b_tail, I) # indices ab are rudimentary, have size 1
-		b_shape = (b_tail.shape[0]*b_tail.shape[1], b_tail.shape[2]*b_tail.shape[3])
+		b_head = np.einsum('abcd, lm-> cldmab', b_head, I) # indices ab are rudimentary, have size 1
+		b_shape = (b_head.shape[0]*b_head.shape[1], b_head.shape[2]*b_head.shape[3])
 		b = b_head.reshape(b_shape) # constructed a proper matrix
 
 	else: # Both A_tail and A_head, need to attach everything properly.
@@ -80,14 +80,14 @@ def generate_A_b(H: MatrixProductOperator, state: TensorTrain, index: int):
 
 		b_tail = np.einsum('abcd, lm -> lambcd', b_tail, I) # indices cd are rudimentary, have size 1
 		#Now we need to attach b_head to b_tail.
-		b_tail = np.einsum('lambcd, opqr -> qlarmbopcd', b_tail, b_head) # indices opqdef are rudimentary, have size 1. 
+		b_tail = np.einsum('lambcd, opqr -> qlarmbopcd', b_tail, b_head) # indices opcd are rudimentary, have size 1. 
 		b_shape = (b_tail.shape[0]*b_tail.shape[1]*b_tail.shape[2], b_tail.shape[3]*b_tail.shape[4]*b_tail.shape[5])
 		b = b_tail.reshape(b_shape) # constructed a proper matrix
 
 	return A, b
 
 
-def dmrg_sweep(H: MatrixProductOperator, state: TensorTrain, is_positive: bool, verbose: bool = False):
+def dmrg_sweep(H: MatrixProductOperator, state: TensorTrain, is_positive: bool, verbose: bool = True):
 	'''
 	One sweep of DMRG algorithm. Positive sweep goes from head (index 0) to tail (index d-1) and negative sweep goes from tail to head.
 
@@ -109,19 +109,22 @@ def dmrg_sweep(H: MatrixProductOperator, state: TensorTrain, is_positive: bool, 
 
 	for index in indices:
 		if verbose:
-			print(f'index \t {index}, energy_before: {(state@H)@state}')
+			print(f'index \t {index}, energy_before: {(H@state)@state}')
 		A, B = generate_A_b(H, state, index)
-		print(A, B)
+
+		eps = 1e-5
+		B = B + eps * np.eye(B.shape[0]) #Tikhonov hack
+
 		w, v = scipy.linalg.eigh(A, b=B)
 		state.cores[index] = v[:,0].reshape(state.cores[index].shape)
 		state = state.normalized()
 		if verbose:
-			print(f'index \t {index}, energy_after: {(state@H)@state}')
+			print(f'index \t {index}, energy_after: {(H@state)@state}')
 
 	return state
 
 
-def dmrg_optimize(H: MatrixProductOperator, initial_state: TensorTrain = None, n_sweeps = 10, rank = 10):
+def dmrg_optimize(H: MatrixProductOperator, initial_state: TensorTrain = None, n_sweeps = 10, rank = 10, verbose: bool = False):
 	'''
 	Run DMRG algorithm. 
 
@@ -144,8 +147,15 @@ def dmrg_optimize(H: MatrixProductOperator, initial_state: TensorTrain = None, n
 
 	if initial_state is None:
 		initial_state = TensorTrain.random_tensor(H.ns, [rank]*(len(H.ns)-1))
+		initial_state = initial_state.normalized()
 
 	state = initial_state
 	for sweep in range(n_sweeps):
-		state = dmrg_sweep(H, state, True)
-		state = dmrg_sweep(H, state, False)
+		if verbose:
+			print(f'Starting sweep {sweep}, direction positive')
+		state = dmrg_sweep(H, state, True, verbose=verbose)
+		if verbose:
+			print(f'Starting sweep {sweep}, direction negative')
+		state = dmrg_sweep(H, state, False, verbose=verbose)
+
+	return state

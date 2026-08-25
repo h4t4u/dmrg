@@ -60,6 +60,9 @@ class MatrixProductOperator:
 
         self.cores = cores
 
+    def __str__(self):
+        return f"Matrix Produuct Operator with dimensions {self.ns}, {self.ms} and ranks {self.ranks}"
+
     def __matmul__(self, other):
         if isinstance(other, TensorTrain):
             return self.mult_by_tensor_train(other)
